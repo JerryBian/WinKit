@@ -1,0 +1,164 @@
+name: Build Release Artifact
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build_release:
+    name: Build Release artifact
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        rid: [win-x86, win-x64, win-arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Publish (single-file, self-contained, AOT, trimmed)
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          $version = "1.${{ github.run_number }}"
+          $out = "./artifacts/WinKit-$($rid)-$($version)"
+          Write-Host "Publishing for RID $rid -> $out"
+            
+          dotnet publish ./src/WinKit.csproj -c Release -r $rid /p:Version=$version /p:SelfContained=true /p:PublishSingleFile=true /p:EnableCompressionInSingleFile=true /p:PublishTrimmed=false /p:PublishAot=false /p:InvariantGlobalization=true -o $out
+
+      - name: Locate single EXE in publish output
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          $version = "1.${{ github.run_number }}"
+          $out = "artifacts/WinKit-$($rid)-$($version)"
+          Write-Host "Searching for .exe in $out"
+          $exe = Get-ChildItem -Path $out -Filter *.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) {
+            Write-Error "No .exe found in $out"
+            Exit 1
+          }
+          Write-Host "Found exe: $($exe.FullName)"
+          "EXE_PATH=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinKit-1.${{ github.run_number }}-${{ matrix.rid }}
+          path: ${{ env.EXE_PATH }}
+
+  attach_release:
+    name: Create GitHub Release and attach artifacts
+    runs-on: ubuntu-latest
+    needs: build_release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Prepare release body (commits since last tag or last 50 commits)
+        id: prepare_body
+        run: |
+          set -e
+          VERSION="v1.${{ github.run_number }}"
+          # Try to get previous tag
+          prev_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$prev_tag" ]; then
+            COMMITS=$(git log ${prev_tag}..HEAD --pretty=format:'- %h %s (%an) [%ad]' --date=format:'%Y-%m-%d %H:%M:%S')
+          else
+            COMMITS=$(git log -n 50 --pretty=format:'- %h %s (%an) [%ad]' --date=format:'%Y-%m-%d %H:%M:%S')
+          fi
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "Release $VERSION for WinKit." >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "Commits:" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create or update release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.${{ github.run_number }}
+          release_name: v1.${{ github.run_number }}
+          body: ${{ steps.prepare_body.outputs.body }}
+          draft: false
+          prerelease: false
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: WinKit-1.${{ github.run_number }}-win-x86
+          path: artifacts_win-x86
+
+      - name: Download artifacts x64
+        uses: actions/download-artifact@v4
+        with:
+          name: WinKit-1.${{ github.run_number }}-win-x64
+          path: artifacts_win-x64
+
+      - name: Download artifacts arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: WinKit-1.${{ github.run_number }}-win-arm64
+          path: artifacts_win-arm64
+
+      - name: Rename and prepare artifacts for release
+        run: |
+          set -e
+          mkdir -p release_files
+          for rid in x86 x64 arm64; do
+            dir="artifacts_win-${rid}"
+            if [ -d "$dir" ]; then
+              for file in "$dir"/*; do
+                if [ -f "$file" ]; then
+                  # Extract version from run number and construct new filename
+                  version="v1.${{ github.run_number }}"
+                  ext="${file##*.}"
+                  new_name="WinKit-${rid}-${version}.${ext}"
+                  mv "$file" "release_files/${new_name}"
+                  echo "Prepared: ${new_name}"
+                fi
+              done
+            else
+              echo "Warning: $dir directory not found"
+            fi
+          done
+          echo "Files ready for release:"
+          ls -lh release_files/
+
+      - name: Upload artifacts to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ steps.create_release.outputs.upload_url }}
+        run: |
+          set -e
+          # Remove the {?name,label} template part from upload_url to get the base URL
+          base_url=$(echo "$UPLOAD_URL" | sed 's/{?name,label}//')
+          if [ ! -d "release_files" ]; then
+            echo "Error: release_files directory not found"
+            exit 1
+          fi
+          for file in release_files/*; do
+            if [ -f "$file" ]; then
+              name=$(basename "$file")
+              echo "Uploading $name to release"
+              curl -sS -X POST \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$file" "${base_url}?name=${name}"
+            fi
+          done
+          echo "Upload complete"
