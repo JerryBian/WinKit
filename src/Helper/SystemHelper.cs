@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WinKit.Helper
+﻿namespace WinKit.Helper
 {
     public static class SystemHelper
     {

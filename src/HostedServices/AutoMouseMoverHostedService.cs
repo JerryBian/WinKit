@@ -1,8 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using WinKit.Extensions;
 using WinKit.Logging;
 using WinKit.Models;
@@ -10,17 +6,27 @@ using WinKit.Store;
 
 namespace WinKit.HostedServices
 {
-    public class AutoMouseMoverHostedService(IFileLogger logger, IUserSettingStore userSettingStore) : BackgroundService
+    public class AutoMouseMoverHostedService(IFileLogger logger, IUserSettingStore userSettingStore, MainForm mainForm)
+        : BackgroundService
     {
+        private readonly MainForm _mainForm = mainForm;
         private readonly IFileLogger _logger = logger;
         private readonly IUserSettingStore _userSettingStore = userSettingStore;
 
         private Point _lastCursorPosition;
         private bool _moveBack;
+        private DateTime _lastMovedAt;
+        private long _moveCount;
+
+        public override async Task StartAsync(CancellationToken cancellationToken)
+        {
+            _lastMovedAt = DateTime.Now;
+            _moveCount = 0L;
+            await base.StartAsync(cancellationToken);
+        }
 
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await _logger.LogAsync("AutoMouseMoverHostedService is starting.");
             if (!Environment.UserInteractive)
             {
                 await _logger.LogAsync("AutoMouseMover is not working due to the process is not run under user session");
@@ -37,8 +43,18 @@ namespace WinKit.HostedServices
                     var userSetting = await _userSettingStore.GetUserSettingAsync();
                     if (userSetting.AutoMouseMoverEnabled)
                     {
-                        await MoveMouseAsync(userSetting);
+                        if (userSetting.AutoMouseMoverDisableAfterInMinutes <= 0 || (DateTime.Now - _lastMovedAt) < TimeSpan.FromMinutes(userSetting.AutoMouseMoverDisableAfterInMinutes))
+                        {
+                            await MoveMouseAsync(userSetting);
+                            _moveCount++;
+                            _lastMovedAt = DateTime.Now;
+                        }
                     }
+
+                    var remainingTime = userSetting.AutoMouseMoverDisableAfterInMinutes > 0
+                        ? TimeSpan.FromMinutes(userSetting.AutoMouseMoverDisableAfterInMinutes) - (DateTime.Now - _lastMovedAt)
+                        : TimeSpan.Zero;
+                    await _mainForm.UpdateAutoMouseStatusAsync(userSetting.AutoMouseMoverEnabled, _moveCount, remainingTime);
 
                     await Task.Delay(TimeSpan.FromSeconds(userSetting.AutoMouseMoverIntervalSeconds), stoppingToken).OkForCancelAsync();
                 }
@@ -63,7 +79,10 @@ namespace WinKit.HostedServices
                 var movePixel = _moveBack ? -1 * userSetting.AutoMouseMoverPixel : userSetting.AutoMouseMoverPixel;
                 var newPosition = await FindNewPositionAsync(currentPosition, movePixel);
                 NativeMethods.SetCursorPosition(newPosition.X, newPosition.Y);
-                NativeMethods.SendMouseClickEvent();
+                if (userSetting.AutoMouseMoverClickEnabled)
+                {
+                    NativeMethods.SendMouseClickEvent();
+                }
 
                 await _logger.LogAsync($"Moved mouse from {currentPosition} to {newPosition}.");
                 _moveBack = !_moveBack;

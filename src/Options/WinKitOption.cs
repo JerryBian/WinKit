@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WinKit.Options
+﻿namespace WinKit.Options
 {
     public class WinKitOption
     {

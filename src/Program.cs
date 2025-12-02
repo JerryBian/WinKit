@@ -20,7 +20,7 @@ namespace WinKit
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
 
-            using var host = 
+            using var host =
                 Host.CreateDefaultBuilder()
                 .ConfigureServices((context, services) =>
                 {
@@ -48,6 +48,7 @@ namespace WinKit
                     services.AddSingleton<MainForm>();
 
                     services.AddHostedService<AutoMouseMoverHostedService>();
+                    services.AddHostedService<AutoShutdownPCHostedService>();
                 })
                 .Build();
             host.Start();

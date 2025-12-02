@@ -24,7 +24,7 @@ namespace WinKit.Logging
             _logBuffer = [];
             _mainTask = Task.Run(async () =>
             {
-                foreach(var item in _logBuffer.GetConsumingEnumerable())
+                foreach (var item in _logBuffer.GetConsumingEnumerable())
                 {
                     await WriteLogAsync(item);
                 }
@@ -39,7 +39,7 @@ namespace WinKit.Logging
 
         public async Task LogAsync(string message, Exception ex = null)
         {
-            if(string.IsNullOrEmpty(_logFile))
+            if (string.IsNullOrEmpty(_logFile))
             {
                 Initialize(string.Empty);
             }
@@ -50,8 +50,8 @@ namespace WinKit.Logging
                 Message = message,
                 Error = ex
             };
-            
-            if(!_logBuffer.TryAdd(log))
+
+            if (!_logBuffer.TryAdd(log))
             {
                 await WriteLogAsync(log);
             }
@@ -61,7 +61,7 @@ namespace WinKit.Logging
 
         public void Initialize(string fileName)
         {
-            if(string.IsNullOrEmpty(fileName))
+            if (string.IsNullOrEmpty(fileName))
             {
                 fileName = "default";
             }

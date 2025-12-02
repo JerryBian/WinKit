@@ -6,9 +6,14 @@
     <Nullable>disable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <UseSystemGlobalization>true</UseSystemGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Exec" Version="1.2.0" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
   </ItemGroup>

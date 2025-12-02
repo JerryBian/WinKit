@@ -1,9 +1,5 @@
 ﻿using MessagePack;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 using WinKit.Logging;
 using WinKit.Models;
@@ -37,13 +33,14 @@ namespace WinKit.Store
                     await _logger.LogAsync($"Load user setting failed from local file {file}, fallback to default.", ex);
                 }
             }
-            
+
             return _userSetting;
         }
 
         public async Task SaveAsync(UserSetting userSetting)
         {
             var file = GetUserSettingFile();
+            userSetting.LastUpdatedAt = DateTime.Now;
             using (var stream = File.Open(file, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await MessagePackSerializer.SerializeAsync(stream, userSetting);

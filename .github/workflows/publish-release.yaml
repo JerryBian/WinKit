@@ -33,7 +33,7 @@ jobs:
           $out = "./artifacts/WinKit-$($rid)-$($version)"
           Write-Host "Publishing for RID $rid -> $out"
             
-          dotnet publish ./src/WinKit.csproj -c Release -r $rid /p:Version=$version /p:SelfContained=true /p:PublishSingleFile=true /p:EnableCompressionInSingleFile=true /p:PublishTrimmed=false /p:PublishAot=false /p:InvariantGlobalization=true -o $out
+          dotnet publish ./src/WinKit.csproj -c Release -r $rid /p:Version=$version /p:SelfContained=true /p:PublishSingleFile=true /p:EnableCompressionInSingleFile=true /p:PublishTrimmed=false /p:PublishAot=false /p:InvariantGlobalization=false -o $out
 
       - name: Locate single EXE in publish output
         shell: pwsh

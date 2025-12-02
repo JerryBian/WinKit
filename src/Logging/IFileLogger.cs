@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace WinKit.Logging
+﻿namespace WinKit.Logging
 {
     public interface IFileLogger : IAsyncDisposable
     {
