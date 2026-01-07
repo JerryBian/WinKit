@@ -22,6 +22,8 @@ namespace WinKit
 
             Icon = Resources.Icon;
             InitializeComponent();
+            
+            Text = $"WinKit - {appUserModelId}";
         }
 
         public void SetShowMeMessage(uint message)
@@ -46,12 +48,16 @@ namespace WinKit
             
             try
             {
+                _logger.LogAsync($"Window handle created: {Handle}").Wait();
+                _logger.LogAsync($"Setting AppUserModelId on window: {_appUserModelId}").Wait();
+                
                 NativeMethods.SetWindowAppUserModelId(Handle, _appUserModelId);
-                _logger.LogAsync($"AppUserModelId set on window: {_appUserModelId}").Wait();
+                
+                _logger.LogAsync($"AppUserModelId set successfully on window").Wait();
             }
             catch (Exception ex)
             {
-                _logger.LogAsync($"Failed to set AppUserModelId on window", ex).Wait();
+                _logger.LogAsync($"ERROR: Failed to set AppUserModelId on window", ex).Wait();
             }
         }
 

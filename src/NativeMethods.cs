@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace WinKit
 {
@@ -47,6 +48,9 @@ namespace WinKit
         [DllImport("shell32.dll")]
         private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore propertyStore);
 
+        [DllImport("ole32.dll")]
+        private static extern int PropVariantClear(ref PropVariant pvar);
+
         public static bool GetCursorPosition(out Point point)
         {
             return GetCursorPos(out point);
@@ -89,20 +93,40 @@ namespace WinKit
 
         public static void SetWindowAppUserModelId(IntPtr hwnd, string appId)
         {
-            var guid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+            IPropertyStore propertyStore = null;
+            PropVariant pv = new PropVariant();
+            
             try
             {
-                if (SHGetPropertyStoreForWindow(hwnd, ref guid, out IPropertyStore propertyStore) == 0)
+                var guid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+                int hr = SHGetPropertyStoreForWindow(hwnd, ref guid, out propertyStore);
+                
+                if (hr == 0 && propertyStore != null)
                 {
                     var pkey = new PropertyKey(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
-                    var propVar = new PropVariant(appId);
-                    propertyStore.SetValue(ref pkey, ref propVar);
+                    
+                    pv.vt = 31; // VT_LPWSTR
+                    pv.ptrVal = Marshal.StringToCoTaskMemUni(appId);
+                    
+                    propertyStore.SetValue(ref pkey, ref pv);
                     propertyStore.Commit();
-                    Marshal.ReleaseComObject(propertyStore);
                 }
             }
-            catch
+            catch (Exception)
             {
+                // Silently fail
+            }
+            finally
+            {
+                if (pv.ptrVal != IntPtr.Zero)
+                {
+                    PropVariantClear(ref pv);
+                }
+                
+                if (propertyStore != null)
+                {
+                    Marshal.ReleaseComObject(propertyStore);
+                }
             }
         }
 
@@ -158,19 +182,13 @@ namespace WinKit
             }
         }
 
-        [StructLayout(LayoutKind.Explicit)]
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
         private struct PropVariant
         {
             [FieldOffset(0)]
-            private ushort _vt;
+            public ushort vt;
             [FieldOffset(8)]
-            private IntPtr _ptrVal;
-
-            public PropVariant(string value)
-            {
-                _vt = 31; // VT_LPWSTR
-                _ptrVal = Marshal.StringToCoTaskMemUni(value);
-            }
+            public IntPtr ptrVal;
         }
     }
 
