@@ -43,7 +43,16 @@ namespace WinKit
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
-            NativeMethods.SetWindowAppUserModelId(Handle, _appUserModelId);
+            
+            try
+            {
+                NativeMethods.SetWindowAppUserModelId(Handle, _appUserModelId);
+                _logger.LogAsync($"AppUserModelId set on window: {_appUserModelId}").Wait();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogAsync($"Failed to set AppUserModelId on window", ex).Wait();
+            }
         }
 
         private void ShowAndActivate()
