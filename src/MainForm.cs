@@ -47,7 +47,7 @@ namespace WinKit
             try
             {
                 _logger.LogAsync($"Window handle created: {Handle}").Wait();
-                _logger.LogAsync($"Setting AppUserModelId on window: {_appUserModelId}").Wait();
+                _logger.LogAsync($"Setting AppUserModelId on window (path-based): {_appUserModelId}").Wait();
                 
                 NativeMethods.SetWindowAppUserModelId(Handle, _appUserModelId);
                 

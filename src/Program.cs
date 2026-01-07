@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,6 @@ namespace WinKit
     internal static class Program
     {
         private static Mutex _mutex;
-        private const string AppUserModelId = "JerryBian.WinKit.App";
 
         /// <summary>
         ///  The main entry point for the application.
@@ -19,7 +19,8 @@ namespace WinKit
         [STAThread]
         static void Main()
         {
-            NativeMethods.SetAppUserModelId(AppUserModelId);
+            var appUserModelId = Process.GetCurrentProcess().MainModule?.FileName ?? "WinKit";
+            NativeMethods.SetAppUserModelId(appUserModelId);
 
             ApplicationConfiguration.Initialize();
 
@@ -51,7 +52,7 @@ namespace WinKit
                     services.AddSingleton<MainForm>(sp => new MainForm(
                         sp.GetRequiredService<IFileLogger>(),
                         sp.GetRequiredService<IUserSettingStore>(),
-                        AppUserModelId));
+                        appUserModelId));
 
                     services.AddHostedService<AutoMouseMoverHostedService>();
                     services.AddHostedService<AutoShutdownPCHostedService>();
@@ -60,6 +61,7 @@ namespace WinKit
             
             var logger = host.Services.GetRequiredService<IFileLogger>();
             logger.Initialize("startup");
+            logger.LogAsync($"AppUserModelId (path-based): {appUserModelId}").Wait();
 
 #if DEBUG
             var mutexName = "WinKit_Debug_SingleInstance";
