@@ -11,7 +11,7 @@ namespace WinKit
         private readonly IFileLogger _logger;
         private readonly IUserSettingStore _userSettingStore;
         private bool _isExiting = false;
-        private uint _showMeMessage;
+        private MessageWindow _messageWindow;
 
         public MainForm(IFileLogger logger, IUserSettingStore userSettingStore)
         {
@@ -24,16 +24,18 @@ namespace WinKit
 
         public void SetShowMeMessage(uint message)
         {
-            _showMeMessage = message;
+            _messageWindow?.Dispose();
+            _messageWindow = new MessageWindow(message, ShowAndActivate);
         }
 
-        protected override void WndProc(ref Message m)
+        protected override void Dispose(bool disposing)
         {
-            if (m.Msg == _showMeMessage && _showMeMessage != 0)
+            if (disposing)
             {
-                ShowAndActivate();
+                _messageWindow?.Dispose();
+                components?.Dispose();
             }
-            base.WndProc(ref m);
+            base.Dispose(disposing);
         }
 
         private void ShowAndActivate()
