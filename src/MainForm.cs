@@ -22,8 +22,6 @@ namespace WinKit
 
             Icon = Resources.Icon;
             InitializeComponent();
-            
-            Text = $"WinKit - {appUserModelId}";
         }
 
         public void SetShowMeMessage(uint message)
