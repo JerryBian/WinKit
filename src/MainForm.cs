@@ -10,13 +10,15 @@ namespace WinKit
     {
         private readonly IFileLogger _logger;
         private readonly IUserSettingStore _userSettingStore;
+        private readonly string _appUserModelId;
         private bool _isExiting = false;
         private MessageWindow _messageWindow;
 
-        public MainForm(IFileLogger logger, IUserSettingStore userSettingStore)
+        public MainForm(IFileLogger logger, IUserSettingStore userSettingStore, string appUserModelId)
         {
             _logger = logger;
             _userSettingStore = userSettingStore;
+            _appUserModelId = appUserModelId;
 
             Icon = Resources.Icon;
             InitializeComponent();
@@ -36,6 +38,12 @@ namespace WinKit
                 components?.Dispose();
             }
             base.Dispose(disposing);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            NativeMethods.SetWindowAppUserModelId(Handle, _appUserModelId);
         }
 
         private void ShowAndActivate()

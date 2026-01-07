@@ -22,6 +22,9 @@ namespace WinKit
         [DllImport("shell32.dll", SetLastError = true)]
         private static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
 
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern int GetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] out string AppID);
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -40,6 +43,9 @@ namespace WinKit
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("shell32.dll")]
+        private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out IPropertyStore propertyStore);
 
         public static bool GetCursorPosition(out Point point)
         {
@@ -81,6 +87,25 @@ namespace WinKit
             SetCurrentProcessExplicitAppUserModelID(appId);
         }
 
+        public static void SetWindowAppUserModelId(IntPtr hwnd, string appId)
+        {
+            var guid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+            try
+            {
+                if (SHGetPropertyStoreForWindow(hwnd, ref guid, out IPropertyStore propertyStore) == 0)
+                {
+                    var pkey = new PropertyKey(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 5);
+                    var propVar = new PropVariant(appId);
+                    propertyStore.SetValue(ref pkey, ref propVar);
+                    propertyStore.Commit();
+                    Marshal.ReleaseComObject(propertyStore);
+                }
+            }
+            catch
+            {
+            }
+        }
+
         public static uint GetShowMeMessage(string uniqueIdentifier)
         {
             return RegisterWindowMessage($"WinKit_ShowMe_{uniqueIdentifier}");
@@ -105,6 +130,46 @@ namespace WinKit
                     ShowWindow(hWnd, SW_SHOW);
                 }
                 SetForegroundWindow(hWnd);
+            }
+        }
+
+        [ComImport]
+        [Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IPropertyStore
+        {
+            void GetCount([Out] out uint propertyCount);
+            void GetAt([In] uint propertyIndex, out PropertyKey key);
+            void GetValue([In] ref PropertyKey key, [Out] PropVariant value);
+            void SetValue([In] ref PropertyKey key, [In] ref PropVariant value);
+            void Commit();
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        private struct PropertyKey
+        {
+            private readonly Guid _fmtid;
+            private readonly uint _pid;
+
+            public PropertyKey(Guid fmtid, uint pid)
+            {
+                _fmtid = fmtid;
+                _pid = pid;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct PropVariant
+        {
+            [FieldOffset(0)]
+            private ushort _vt;
+            [FieldOffset(8)]
+            private IntPtr _ptrVal;
+
+            public PropVariant(string value)
+            {
+                _vt = 31; // VT_LPWSTR
+                _ptrVal = Marshal.StringToCoTaskMemUni(value);
             }
         }
     }

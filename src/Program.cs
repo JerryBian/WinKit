@@ -48,7 +48,10 @@ namespace WinKit
 
                     services.AddSingleton<IFileLogger, FileLogger>();
                     services.AddSingleton<IUserSettingStore, UserSettingStore>();
-                    services.AddSingleton<MainForm>();
+                    services.AddSingleton<MainForm>(sp => new MainForm(
+                        sp.GetRequiredService<IFileLogger>(),
+                        sp.GetRequiredService<IUserSettingStore>(),
+                        AppUserModelId));
 
                     services.AddHostedService<AutoMouseMoverHostedService>();
                     services.AddHostedService<AutoShutdownPCHostedService>();
