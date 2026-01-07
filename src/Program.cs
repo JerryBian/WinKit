@@ -11,6 +11,7 @@ namespace WinKit
     internal static class Program
     {
         private static Mutex _mutex;
+        private const string AppUserModelId = "JerryBian.WinKit.App";
 
         /// <summary>
         ///  The main entry point for the application.
@@ -18,7 +19,7 @@ namespace WinKit
         [STAThread]
         static void Main()
         {
-            NativeMethods.SetAppUserModelId("WinKit");
+            NativeMethods.SetAppUserModelId(AppUserModelId);
 
             ApplicationConfiguration.Initialize();
 

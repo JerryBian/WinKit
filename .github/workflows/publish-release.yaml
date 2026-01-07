@@ -49,7 +49,9 @@ jobs:
           }
           Write-Host "Found exe: $($exe.FullName)"
           
-          $newName = "WinKit-$rid-v$version.exe"
+          # Remove 'win-' prefix from rid for filename
+          $shortRid = $rid -replace '^win-', ''
+          $newName = "WinKit-$shortRid-v$version.exe"
           $newPath = Join-Path $out $newName
           Move-Item -Path $exe.FullName -Destination $newPath -Force
           Write-Host "Renamed to: $newPath"
