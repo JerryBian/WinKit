@@ -1,6 +1,7 @@
 using WinKit.Extensions;
 using WinKit.Logging;
 using WinKit.Models;
+using WinKit.Properties;
 using WinKit.Store;
 
 namespace WinKit
@@ -9,13 +10,65 @@ namespace WinKit
     {
         private readonly IFileLogger _logger;
         private readonly IUserSettingStore _userSettingStore;
+        private bool _isExiting = false;
 
         public MainForm(IFileLogger logger, IUserSettingStore userSettingStore)
         {
             _logger = logger;
             _userSettingStore = userSettingStore;
 
+            Icon = Resources.Icon;
             InitializeComponent();
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            ShowInTaskbar = true;
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                const int CS_NOCLOSE = 0x200;
+                var cp = base.CreateParams;
+                cp.ClassStyle = cp.ClassStyle | CS_NOCLOSE;
+                return cp;
+            }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (!_isExiting)
+            {
+                e.Cancel = true;
+                WindowState = FormWindowState.Minimized;
+            }
+            base.OnFormClosing(e);
+        }
+
+        private void OnMainFormResize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                Hide();
+                ShowInTaskbar = false;
+            }
+        }
+
+        private void OnNotifyIconDoubleClick(object sender, EventArgs e)
+        {
+            Show();
+            WindowState = FormWindowState.Normal;
+            ShowInTaskbar = true;
+            Activate();
+        }
+
+        private void OnExitMenuItemClick(object sender, EventArgs e)
+        {
+            _isExiting = true;
+            Application.Exit();
         }
 
         private async void OnBtnSaveClick(object sender, EventArgs e)

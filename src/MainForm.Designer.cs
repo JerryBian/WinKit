@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             var resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             tabControlMain = new TabControl();
             tabPage1 = new TabPage();
@@ -51,6 +52,9 @@
             numAutoShutdownAfter = new NumericUpDown();
             label8 = new Label();
             btnSave = new Button();
+            notifyIcon = new NotifyIcon(components);
+            contextMenuStripTray = new ContextMenuStrip(components);
+            exitToolStripMenuItem = new ToolStripMenuItem();
             tabControlMain.SuspendLayout();
             tabPage1.SuspendLayout();
             groupBox2.SuspendLayout();
@@ -62,6 +66,7 @@
             groupBox3.SuspendLayout();
             groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)numAutoShutdownAfter).BeginInit();
+            contextMenuStripTray.SuspendLayout();
             SuspendLayout();
             // 
             // tabControlMain
@@ -299,6 +304,27 @@
             btnSave.UseVisualStyleBackColor = false;
             btnSave.Click += OnBtnSaveClick;
             // 
+            // notifyIcon
+            // 
+            notifyIcon.ContextMenuStrip = contextMenuStripTray;
+            notifyIcon.Icon = (Icon)resources.GetObject("$this.Icon");
+            notifyIcon.Text = "WinKit";
+            notifyIcon.Visible = true;
+            notifyIcon.DoubleClick += OnNotifyIconDoubleClick;
+            // 
+            // contextMenuStripTray
+            // 
+            contextMenuStripTray.Items.AddRange(new ToolStripItem[] { exitToolStripMenuItem });
+            contextMenuStripTray.Name = "contextMenuStripTray";
+            contextMenuStripTray.Size = new Size(94, 26);
+            // 
+            // exitToolStripMenuItem
+            // 
+            exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+            exitToolStripMenuItem.Size = new Size(93, 22);
+            exitToolStripMenuItem.Text = "Exit";
+            exitToolStripMenuItem.Click += OnExitMenuItemClick;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -313,6 +339,7 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "WinKit";
             Shown += OnMainFormShown;
+            Resize += OnMainFormResize;
             tabControlMain.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             groupBox2.ResumeLayout(false);
@@ -328,6 +355,7 @@
             groupBox4.ResumeLayout(false);
             groupBox4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)numAutoShutdownAfter).EndInit();
+            contextMenuStripTray.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -355,5 +383,8 @@
         private GroupBox groupBox4;
         private NumericUpDown numAutoShutdownAfter;
         private Label label8;
+        private NotifyIcon notifyIcon;
+        private ContextMenuStrip contextMenuStripTray;
+        private ToolStripMenuItem exitToolStripMenuItem;
     }
 }
