@@ -50,6 +50,11 @@ namespace WinKit.HostedServices
                             _lastMovedAt = DateTime.Now;
                         }
                     }
+                    else
+                    {
+                        _moveCount = 0;
+                        _lastMovedAt = DateTime.Now;
+                    }
 
                     var remainingTime = userSetting.AutoMouseMoverDisableAfterInMinutes > 0
                         ? TimeSpan.FromMinutes(userSetting.AutoMouseMoverDisableAfterInMinutes) - (DateTime.Now - _lastMovedAt)
@@ -61,6 +66,7 @@ namespace WinKit.HostedServices
                 catch (Exception ex)
                 {
                     await _logger.LogAsync($"AutoMouseMoverHostedService failed.", ex);
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).OkForCancelAsync();
                 }
             }
         }

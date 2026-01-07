@@ -11,6 +11,7 @@ namespace WinKit.Store
     {
         private readonly WinKitOption _option = option.Value;
         private readonly IFileLogger _logger = logger;
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
         private UserSetting _userSetting;
 
@@ -18,19 +19,30 @@ namespace WinKit.Store
         {
             if (_userSetting == null)
             {
-                var file = GetUserSettingFile();
+                await _lock.WaitAsync();
                 try
                 {
-                    using (var stream = File.OpenRead(file))
+                    if (_userSetting == null)
                     {
-                        _userSetting = await MessagePackSerializer.DeserializeAsync<UserSetting>(stream);
+                        var file = GetUserSettingFile();
+                        try
+                        {
+                            using (var stream = File.OpenRead(file))
+                            {
+                                _userSetting = await MessagePackSerializer.DeserializeAsync<UserSetting>(stream);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _userSetting = UserSetting.CreateDefault();
+                            await SaveInternalAsync(_userSetting);
+                            await _logger.LogAsync($"Load user setting failed from local file {file}, fallback to default.", ex);
+                        }
                     }
                 }
-                catch (Exception ex)
+                finally
                 {
-                    _userSetting = UserSetting.CreateDefault();
-                    await SaveAsync(_userSetting);
-                    await _logger.LogAsync($"Load user setting failed from local file {file}, fallback to default.", ex);
+                    _lock.Release();
                 }
             }
 
@@ -39,11 +51,35 @@ namespace WinKit.Store
 
         public async Task SaveAsync(UserSetting userSetting)
         {
+            await _lock.WaitAsync();
+            try
+            {
+                await SaveInternalAsync(userSetting);
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
+
+        private async Task SaveInternalAsync(UserSetting userSetting)
+        {
             var file = GetUserSettingFile();
             userSetting.LastUpdatedAt = DateTime.Now;
-            using (var stream = File.Open(file, FileMode.Create, FileAccess.Write, FileShare.None))
+
+            var tempFile = file + ".tmp";
+            using (var stream = File.Open(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await MessagePackSerializer.SerializeAsync(stream, userSetting);
+            }
+
+            if (File.Exists(file))
+            {
+                File.Replace(tempFile, file, null);
+            }
+            else
+            {
+                File.Move(tempFile, file);
             }
 
             _userSetting = userSetting;

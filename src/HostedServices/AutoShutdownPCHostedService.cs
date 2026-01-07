@@ -35,16 +35,20 @@ namespace WinKit.HostedServices
 
                     if (userSetting.AutoShutdownPCEnabled && (DateTime.Now - _startedAt) > TimeSpan.FromMinutes(userSetting.AutoShutdownPCAfterMinutes))
                     {
+                        await _logger.LogAsync("Shutdown threshold reached. Executing shutdown command.");
                         await Exec.RunAsync("shutdown /s /f /t 3", stoppingToken);
                         await _logger.LogAsync("Shutdown command executed.");
+                        break;
                     }
 
-                    await _mainForm.UpdateAutoShutdownPCAsync(userSetting.AutoShutdownPCEnabled, TimeSpan.FromMinutes(userSetting.AutoShutdownPCAfterMinutes) - (DateTime.Now - _startedAt));
+                    var remainingTime = TimeSpan.FromMinutes(userSetting.AutoShutdownPCAfterMinutes) - (DateTime.Now - _startedAt);
+                    await _mainForm.UpdateAutoShutdownPCAsync(userSetting.AutoShutdownPCEnabled, remainingTime);
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken).OkForCancelAsync();
                 }
                 catch (Exception ex)
                 {
                     await _logger.LogAsync($"AutoShutdownPCHostedService failed.", ex);
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).OkForCancelAsync();
                 }
             }
         }

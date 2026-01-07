@@ -31,9 +31,30 @@ namespace WinKit
         {
             if (m.Msg == _showMeMessage && _showMeMessage != 0)
             {
-                NativeMethods.ShowWindowToFront(Handle);
+                ShowAndActivate();
             }
             base.WndProc(ref m);
+        }
+
+        private void ShowAndActivate()
+        {
+            if (InvokeRequired)
+            {
+                Invoke(ShowAndActivate);
+                return;
+            }
+
+            if (!Visible)
+            {
+                Show();
+            }
+            if (WindowState == FormWindowState.Minimized)
+            {
+                WindowState = FormWindowState.Normal;
+            }
+            ShowInTaskbar = true;
+            NativeMethods.ShowWindowToFront(Handle);
+            Activate();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -74,10 +95,7 @@ namespace WinKit
 
         private void OnNotifyIconDoubleClick(object sender, EventArgs e)
         {
-            Show();
-            WindowState = FormWindowState.Normal;
-            ShowInTaskbar = true;
-            Activate();
+            ShowAndActivate();
         }
 
         private void OnExitMenuItemClick(object sender, EventArgs e)
@@ -98,7 +116,7 @@ namespace WinKit
                     AutoMouseMoverPixel = Math.Max((int)numAutoMouseMoverPixel.Value, 5),
                     AutoMouseMoverDisableAfterInMinutes = (int)numAutoMouseMoverDisableAfter.Value,
                     AutoShutdownPCEnabled = cbAutoShutdownEnabled.Checked,
-                    AutoShutdownPCAfterMinutes = (int)numAutoShutdownAfter.Value
+                    AutoShutdownPCAfterMinutes = Math.Max((int)numAutoShutdownAfter.Value, 1)
                 };
 
                 await _userSettingStore.SaveAsync(userSetting);
@@ -186,7 +204,9 @@ namespace WinKit
                 return;
             }
 
-            labelAutoShutdownStatus.Text = $"PC will shutdown in {remaining:hh\\:mm\\:ss}.";
+            labelAutoShutdownStatus.Text = remaining > TimeSpan.Zero
+                ? $"PC will shutdown in {remaining:hh\\:mm\\:ss}."
+                : "Shutdown imminent...";
         }
     }
 }
