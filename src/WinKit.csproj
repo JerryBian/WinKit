@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -10,6 +10,7 @@
     <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
     <InvariantGlobalization>false</InvariantGlobalization>
     <UseSystemGlobalization>true</UseSystemGlobalization>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

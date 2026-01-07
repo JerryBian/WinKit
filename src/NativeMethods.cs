@@ -15,6 +15,9 @@ namespace WinKit
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint cInputs, out Input pInputs, int cbSize);
 
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
+
         public static bool GetCursorPosition(out Point point)
         {
             return GetCursorPos(out point);
@@ -48,6 +51,11 @@ namespace WinKit
             // Send down and up separately
             SendInput(1, out inputDown, Marshal.SizeOf(new Input()));
             SendInput(1, out inputUp, Marshal.SizeOf(new Input()));
+        }
+
+        public static void SetAppUserModelId(string appId)
+        {
+            SetCurrentProcessExplicitAppUserModelID(appId);
         }
     }
 
