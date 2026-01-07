@@ -10,6 +10,8 @@ namespace WinKit
 {
     internal static class Program
     {
+        private static Mutex _mutex;
+
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -18,8 +20,6 @@ namespace WinKit
         {
             NativeMethods.SetAppUserModelId("WinKit");
 
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
 
             using var host =
@@ -53,9 +53,41 @@ namespace WinKit
                     services.AddHostedService<AutoShutdownPCHostedService>();
                 })
                 .Build();
+            
+            var logger = host.Services.GetRequiredService<IFileLogger>();
+            logger.Initialize("startup");
+
+#if DEBUG
+            var mutexName = "WinKit_Debug_SingleInstance";
+            var uniqueIdentifier = "Debug";
+#else
+            var mutexName = "WinKit_Release_SingleInstance";
+            var uniqueIdentifier = "Release";
+#endif
+
+            _mutex = new Mutex(true, mutexName, out bool createdNew);
+
+            if (!createdNew)
+            {
+                logger.LogAsync("Another instance is already running. Exiting.").Wait();
+                NativeMethods.BroadcastShowMeMessage(uniqueIdentifier);
+                return;
+            }
+
+            var mainForm = host.Services.GetRequiredService<MainForm>();
+            mainForm.SetShowMeMessage(NativeMethods.GetShowMeMessage(uniqueIdentifier));
+
             host.Start();
 
-            Application.Run(host.Services.GetRequiredService<MainForm>());
+            try
+            {
+                Application.Run(mainForm);
+            }
+            finally
+            {
+                _mutex?.ReleaseMutex();
+                _mutex?.Dispose();
+            }
         }
     }
 }

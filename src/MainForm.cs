@@ -11,6 +11,7 @@ namespace WinKit
         private readonly IFileLogger _logger;
         private readonly IUserSettingStore _userSettingStore;
         private bool _isExiting = false;
+        private uint _showMeMessage;
 
         public MainForm(IFileLogger logger, IUserSettingStore userSettingStore)
         {
@@ -19,6 +20,20 @@ namespace WinKit
 
             Icon = Resources.Icon;
             InitializeComponent();
+        }
+
+        public void SetShowMeMessage(uint message)
+        {
+            _showMeMessage = message;
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == _showMeMessage && _showMeMessage != 0)
+            {
+                NativeMethods.ShowWindowToFront(Handle);
+            }
+            base.WndProc(ref m);
         }
 
         protected override void OnLoad(EventArgs e)
@@ -151,7 +166,6 @@ namespace WinKit
                 return;
             }
 
-            // Update controls directly on UI thread
             labelMoveCount.Text = $"Mouse moved {moveCount} times.";
             labelRemainingTime.Text = remaining > TimeSpan.Zero
                 ? $"Mouse mover will be disabled in {remaining.TotalMinutes:F1} minutes."

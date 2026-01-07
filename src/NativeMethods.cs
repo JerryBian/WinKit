@@ -4,6 +4,10 @@ namespace WinKit
 {
     public static class NativeMethods
     {
+        private const int SW_RESTORE = 9;
+        private const int SW_SHOW = 5;
+        private const int HWND_BROADCAST = 0xFFFF;
+
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetCursorPos(out Point point);
@@ -17,6 +21,25 @@ namespace WinKit
 
         [DllImport("shell32.dll", SetLastError = true)]
         private static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern uint RegisterWindowMessage(string lpString);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         public static bool GetCursorPosition(out Point point)
         {
@@ -56,6 +79,33 @@ namespace WinKit
         public static void SetAppUserModelId(string appId)
         {
             SetCurrentProcessExplicitAppUserModelID(appId);
+        }
+
+        public static uint GetShowMeMessage(string uniqueIdentifier)
+        {
+            return RegisterWindowMessage($"WinKit_ShowMe_{uniqueIdentifier}");
+        }
+
+        public static void BroadcastShowMeMessage(string uniqueIdentifier)
+        {
+            uint message = GetShowMeMessage(uniqueIdentifier);
+            PostMessage((IntPtr)HWND_BROADCAST, message, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        public static void ShowWindowToFront(IntPtr hWnd)
+        {
+            if (hWnd != IntPtr.Zero)
+            {
+                if (IsIconic(hWnd))
+                {
+                    ShowWindow(hWnd, SW_RESTORE);
+                }
+                else
+                {
+                    ShowWindow(hWnd, SW_SHOW);
+                }
+                SetForegroundWindow(hWnd);
+            }
         }
     }
 
